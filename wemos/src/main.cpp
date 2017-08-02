@@ -67,7 +67,7 @@ bool sendMeasurementsToApi() {
     Serial.print("Buffer is ");
     Serial.println(buffer);
 
-    http.begin("http://imegumii.space:3000/api/measurement"); //HTTP
+    http.begin("http://imegumii.space:3030/api/measurement"); //HTTP
     http.addHeader("Content-Type", "application/json", true, true);
     int httpCode = http.POST(buffer);
     if (httpCode > 0) {
