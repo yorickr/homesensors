@@ -1,19 +1,30 @@
 import express from 'express';
 import bodyParser from 'body-parser';
+import moment from 'moment';
 
 import f from './util/format.js';
 import db from './util/database.js';
+import encryption from './util/encryption.js';
+
+// routes
+import sensor from './routes/sensor.js';
+import user from './routes/user.js';
+
+import cfg from './config/config.json';
 
 const app = express();
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 
-app.all('*', (req, res, next) => {
+const log = (req, res, next) => {
     // Log the request.
-    console.log('CALL: ' + req.method + ' ' + req.originalUrl);
+    const m = moment();
+    console.log(m.format('Y-MM-DD HH:mm:ss') + ' ---- CALL: ' + req.method + ' ' + req.originalUrl);
     next();
-});
+};
+
+app.use(log);
 
 app.get('/api', (req, res) => {
     res.send('Hello World! This api is alive and well!');
@@ -86,6 +97,12 @@ router.post('/measurement', (req, res) => {
             });
     }
 });
+
+// TODO: https://scotch.io/tutorials/authenticate-a-node-js-api-with-json-web-tokens
+
+router.use('/user', user);
+
+router.use('/sensor', sensor);
 
 app.use('/api', router);
 
