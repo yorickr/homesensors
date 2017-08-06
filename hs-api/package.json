@@ -16,9 +16,13 @@
     "babel-preset-env": "^1.6.0",
     "babel-preset-es2015": "^6.24.1",
     "babel-watch": "^2.0.7",
+    "bcrypt": "^1.0.2",
     "body-parser": "^1.17.2",
     "eslint": "^4.3.0",
     "express": "^4.15.3",
-    "mysql": "^2.14.1"
+    "jsonwebtoken": "^7.4.2",
+    "moment": "^2.18.1",
+    "mysql": "^2.14.1",
+    "node-bcrypt": "^0.0.1"
   }
 }
