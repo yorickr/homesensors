@@ -3,7 +3,12 @@ import express from 'express';
 import f from '../util/format.js';
 import db from '../util/database.js';
 
+// middleware
+import auth from '../middleware/auth.js';
+
 const sensor = express.Router();
+
+sensor.use(auth);
 
 sensor.post('/unregister', (req, res) => {
     const body = req.body || null;

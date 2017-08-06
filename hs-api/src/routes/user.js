@@ -24,14 +24,19 @@ user.post('/login', (req, res) => {
                         encryption.check(password, hash)
                             .then((matches) => {
                                 if (matches === true) {
-                                    const token = jwt.sign(body, cfg.secret, {expiresIn: 300});
+                                    const userId = response.results[0]['user_id'];
+                                    const token = jwt.sign({userId}, cfg.secret, {expiresIn: 86400});
                                     res.json(f.formatResponse(true, {
-                                        userId: response.results[0]['user_id'],
+                                        userId,
                                         token
                                     }));
                                 } else {
                                     res.json(f.formatResponse(false, 'Wrong password.'));
                                 }
+                            })
+                            .catch((error) => {
+                                console.log(error);
+                                res.json(f.formatResponse(false, 'Something went wrong.'));
                             });
                     } else {
                         // user doesn't exist.
