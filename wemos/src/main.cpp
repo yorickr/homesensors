@@ -11,22 +11,32 @@
 #include <LinkedList.h>
 #include <ArduinoJson.h>
 
+// Uncomment the ones supported.
+#define USE_TEMPERATURE
+
+// #define USE_LIGHT
+
+#ifdef USE_TEMPERATURE
+
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#define ONE_WIRE_BUS D4
+
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
+
+#endif
+
+#ifdef USE_LIGHT
 
 #include <Wire.h>
 #include <BH1750.h>
-
-#define ONE_WIRE_BUS D4
-
 #define SDA D2
 #define SCL D1
 
-OneWire oneWire(ONE_WIRE_BUS);
-
-DallasTemperature sensors(&oneWire);
-
 BH1750 lightMeter;
+
+#endif
 
 HTTPClient http;
 
@@ -41,9 +51,14 @@ int counter = 0;
 
 void setup() {
     Serial.begin(115200);
+    #ifdef USE_LIGHT
     Wire.begin(SDA, SCL); // actually pretty important
-    sensors.begin();
     lightMeter.begin();
+    #endif
+
+    #ifdef USE_TEMPERATURE
+    sensors.begin();
+    #endif
 
     WiFiManager wifiManager;
     wifiManager.autoConnect("Wemos D1 mini");
@@ -61,7 +76,7 @@ bool sendMeasurementsToApi() {
         nestedObject["light"] = m.light;
     }
 
-    char buffer[256];
+    char buffer[1024];
     root.printTo(buffer, sizeof(buffer));
     int len = root.measureLength();
     Serial.print("Buffer is ");
@@ -96,12 +111,21 @@ void printMeasurement(struct measurement m, int i) {
 
 void loop() {
     unsigned long startTime = millis();
+    struct measurement m = { 0.0, 0};
 
-    uint16_t light = lightMeter.readLightLevel();
+    #ifdef USE_TEMPERATURE
     sensors.requestTemperatures(); // Send the command to get temperatures
     float temperature = sensors.getTempCByIndex(0);
+    m.temperature = temperature;
 
-    struct measurement m = {temperature, light};
+    #endif
+
+    #ifdef USE_LIGHT
+    uint16_t light = lightMeter.readLightLevel();
+    m.light = light;
+
+    #endif
+
 
     Serial.print("Measured the following: ");
     Serial.print(m.temperature);
@@ -114,7 +138,7 @@ void loop() {
     measurements.add(m);
     counter++;
 
-    if (counter >= 6) {
+    if (counter >= 12) { // send 12 measurements, once every 5 seconds
         // Serial.print("Measurements contains ");
         // Serial.println(measurements.size());
         // for (int i = 0; i < measurements.size(); i++) {
