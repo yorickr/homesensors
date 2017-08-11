@@ -65,9 +65,9 @@ enum states {
 };
 
 enum ret_codes {
-    OK,
-    ERROR_RETRY,
-    ERROR
+    STATUS_OK,
+    STATUS_ERROR_RETRY,
+    STATUS_ERROR
 };
 
 enum states current_state = LOGIN_STATE;
@@ -89,8 +89,25 @@ void setup() {
     mac = WiFi.macAddress();
 }
 
-void post_request() {
+bool post_request(const char buffer[]) {
+    http.begin("http://imegumii.space:3030/api/data/measurement"); //HTTP
+    http.addHeader("Content-Type", "application/json", true, true);
+    int httpCode = http.POST(buffer);
+    String payload = http.getString();
+    Serial.println(payload); // prints our json string.
+    if (httpCode > 0) {
+        Serial.printf("[HTTP] POST... code: %d\n", httpCode);
 
+        if (httpCode == HTTP_CODE_OK) {
+            http.end();
+            return true;
+        }
+    } else {
+        Serial.printf("[HTTP] POST... failed, error: %s\n", http.errorToString(httpCode).c_str());
+    }
+
+    http.end();
+    return false;
 }
 
 bool send_measurements_to_api() {
@@ -178,6 +195,15 @@ bool retrieve_data() {
 };
 
 void loop() {
+    StaticJsonBuffer<1024> jsonBuffer;
+    JsonObject& root = jsonBuffer.createObject();
+
+    JsonArray& data = root.createNestedArray("measurements");
+    data.add(25.7);
+    String toSend;
+    data.printTo(toSend);
+    post_request(toSend.c_str());
+    delay(10000);
     switch (current_state) {
         case LOGIN_STATE:
             // login and get a token. if we ever get an invalid token error, then go back to this state to login again.
