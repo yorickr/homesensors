@@ -49,8 +49,32 @@ LinkedList<struct measurement> measurements;
 
 int counter = 0;
 
+String mac;
+
+// Steps to perform.
+
+// login and get token, store token
+// register sensor
+// push data
+
+enum states {
+    LOGIN_STATE,
+    REGISTER_STATE,
+    RETRIEVING_STATE,
+    SENDING_STATE
+};
+
+enum ret_codes {
+    OK,
+    ERROR_RETRY,
+    ERROR
+};
+
+enum states current_state = LOGIN_STATE;
+
 void setup() {
     Serial.begin(115200);
+
     #ifdef USE_LIGHT
     Wire.begin(SDA, SCL); // actually pretty important
     lightMeter.begin();
@@ -62,9 +86,14 @@ void setup() {
 
     WiFiManager wifiManager;
     wifiManager.autoConnect("Wemos D1 mini");
+    mac = WiFi.macAddress();
 }
 
-bool sendMeasurementsToApi() {
+void post_request() {
+
+}
+
+bool send_measurements_to_api() {
     StaticJsonBuffer<1024> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
@@ -72,8 +101,13 @@ bool sendMeasurementsToApi() {
     for (int i = 0; i < measurements.size(); i++) {
         JsonObject& nestedObject = data.createNestedObject();
         struct measurement m = measurements.get(i);
-        nestedObject["temperature"] = m.temperature;
+        #ifdef USE_LIGHT
         nestedObject["light"] = m.light;
+        #endif
+
+        #ifdef USE_TEMPERATURE
+        nestedObject["temperature"] = m.temperature;
+        #endif
     }
 
     char buffer[1024];
@@ -100,16 +134,7 @@ bool sendMeasurementsToApi() {
     return false;
 }
 
-void printMeasurement(struct measurement m, int i) {
-    Serial.print("Measured: ");
-    Serial.print(i);
-    Serial.print(" - ");
-    Serial.print(m.temperature);
-    Serial.print(" ");
-    Serial.println(m.light);
-}
-
-void loop() {
+bool retrieve_data() {
     unsigned long startTime = millis();
     struct measurement m = { 0.0, 0};
 
@@ -125,7 +150,6 @@ void loop() {
     m.light = light;
 
     #endif
-
 
     Serial.print("Measured the following: ");
     Serial.print(m.temperature);
@@ -144,11 +168,30 @@ void loop() {
         // for (int i = 0; i < measurements.size(); i++) {
         //     printMeasurement(measurements.get(i), i);
         // }
-        sendMeasurementsToApi();
+        send_measurements_to_api();
         counter = 0;
         measurements.clear();
     }
 
     unsigned long delta = millis() - startTime;
     delay(5000 - delta);
+};
+
+void loop() {
+    switch (current_state) {
+        case LOGIN_STATE:
+            // login and get a token. if we ever get an invalid token error, then go back to this state to login again.
+            break;
+        case REGISTER_STATE:
+            // register this sensor with the api.
+            // if it goes wrong, it might be already registered, check for this and catch accordingly.
+            break;
+        case RETRIEVING_STATE:
+            // retrieve sensor data. if > 12 times then send data.
+            retrieve_data();
+            break;
+        case SENDING_STATE:
+            // send using wifi
+            break;
+    }
 }
