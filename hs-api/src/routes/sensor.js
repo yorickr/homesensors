@@ -40,14 +40,20 @@ sensor.post('/register', (req, res) => {
         console.log(body);
         const {userId, type, mac, name, active} = body;
         if (userId && type && mac && name && active !== undefined) {
-            const query = db.format('INSERT INTO sensors(user_id, type, mac, name, active) VALUES(?, ?, ?, ?, ?)', [userId, type, mac, name, active]);
+            const query = db.format('INSERT INTO sensors(user_id, type, mac, name, active) VALUES(?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), type = VALUES(type), mac = VALUES(mac), name = VALUES(name), active = VALUES(active)', [userId, type, mac, name, active]);
             db.execute(query)
                 .then((response) => {
-                    res.json(f.formatResponse(true, {sensorId: response.results.insertId}));
+                    console.log(response.results);
+                    const idQuery = db.format('SELECT sensor_id FROM sensors WHERE mac = ?', [mac]);
+                    return db.execute(idQuery);
+                })
+                .then((response) => {
+                    res.json(f.formatResponse(true, {sensorId: response.results[0].sensor_id}));
                 })
                 .catch((error) => {
+                    console.log(error);
                     if (error.errno === 1062) {
-                        res.json(f.formatResponse(false, 'This sensor already exists in the database.'));
+                        res.json(f.formatResponse(false, 'This sensor is already registered in the database.'));
                     } else {
                         res.json(f.formatResponse(false));
                     }
