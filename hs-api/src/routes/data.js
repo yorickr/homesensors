@@ -68,7 +68,8 @@ data.post('/measurement', (req, res) => {
                 return sum + value[kind];
             }, 0);
             const averageValue = value / body.measurements.length;
-            const query = db.format('INSERT INTO measurements (value, data_kind, sensor_id) VALUES (?, ?, ?)', [averageValue, kind, body.sensorId]);
+            const rounded = averageValue.toFixed(3); // round to 3 decimals.
+            const query = db.format('INSERT INTO measurements (value, data_kind, sensor_id) VALUES (?, ?, ?)', [rounded, kind, body.sensorId]);
             console.log(query);
             return db.execute(query);
         };

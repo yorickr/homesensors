@@ -39,8 +39,8 @@ sensor.post('/register', (req, res) => {
     if (body) {
         console.log(body);
         const {userId, type, mac, name, active} = body;
-        if (userId && type && mac && name && active !== undefined) {
-            const query = db.format('INSERT INTO sensors(user_id, type, mac, name, active) VALUES(?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), type = VALUES(type), mac = VALUES(mac), name = VALUES(name), active = VALUES(active)', [userId, type, mac, name, active]);
+        if (userId && mac) {
+            const query = db.format('INSERT INTO sensors(user_id, mac) VALUES(?, ?) ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), mac = VALUES(mac)', [userId, mac]);
             db.execute(query)
                 .then((response) => {
                     const idQuery = db.format('SELECT sensor_id FROM sensors WHERE mac = ?', [mac]);
