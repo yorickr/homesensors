@@ -57,7 +57,7 @@ const supportedData = [
 
 data.post('/measurement', (req, res) => {
     const body = req.body || null;
-    if (body) {
+    if (body && body.measurements && body.measurements.length > 0) {
         // const query = 'INSERT INTO measurements (temperature, light) VALUES ?';
         // group temperatures, light values.
         const groupByKind = (kind) => {
@@ -73,7 +73,7 @@ data.post('/measurement', (req, res) => {
             return db.execute(query);
         };
 
-        const promises = supportedData.map((dataKind) => {
+        const promises = Object.keys(body.measurements[0]).map((dataKind) => {
             return groupByKind(dataKind);
         });
 
@@ -85,8 +85,10 @@ data.post('/measurement', (req, res) => {
             .catch((error) => {
                 console.log(error);
                 console.log('Something went wrong inserting data.');
-                res.json(f.formatResponse(false));
+                res.json(f.formatResponse(false, 'Something went wrong inserting data'));
             });
+    } else {
+        res.json(f.formatResponse(false, 'Insufficient data provided'));
     }
 });
 
