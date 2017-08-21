@@ -17,26 +17,8 @@ data.get('/temperature', (req, res) => {
     res.json(f.formatResponse(true, { temperature: 25.2 }));
 });
 
-data.post('/temperature', (req, res) => {
-    const body = req.body || null;
-    if (body) {
-        // all is well.
-        console.log('Temperature is ' + body.temperature);
-    }
-    res.json(f.formatResponse(true));
-});
-
 data.get('/light', (req, res) => {
     res.json(f.formatResponse(true, {light: 25.1}));
-});
-
-data.post('/light', (req, res) => {
-    const body = req.body || null;
-    if (body) {
-        // body exists, therefore get light intensity.
-        console.log('Light intensity is ' + body.light);
-    }
-    res.json(f.formatResponse(true));
 });
 
 data.get('/measurement', (req, res) => {

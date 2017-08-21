@@ -1,5 +1,6 @@
 import express from 'express';
 import bodyParser from 'body-parser';
+import cors from 'cors';
 
 // utils
 import f from './util/format.js';
@@ -27,15 +28,17 @@ app.get('/api', (req, res) => {
     res.send('Hello World! This api is alive and well!');
 });
 
-app.all('/api*/*', (req, res, next) => {
-    // Set response header
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'X-Requested-With,Content-type,Accept,X-Access-Token,X-Key');
-    // Set response contenttype
-    res.contentType('application/json');
-    next();
-});
+app.use(cors());
+
+// app.use((req, res, next) => {
+//     // Set response header
+//     res.header('Access-Control-Allow-Origin', '*');
+//     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+//     res.header('Access-Control-Allow-Headers', 'X-Requested-With,Content-Type,Accept,X-Access-Token,X-Key');
+//     // Set response contenttype
+//     res.contentType('application/json');
+//     next();
+// });
 
 const router = express.Router();
 
