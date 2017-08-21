@@ -5,4 +5,11 @@ const {width, height, scale} = Dimensions.get("window"),
     vmin = Math.min(vw, vh),
     vmax = Math.max(vw, vh);
 
-export default StyleSheet.create({});
+export default StyleSheet.create({
+    "dashboard": {
+        "marginTop": 10,
+        "marginRight": 10,
+        "marginBottom": 10,
+        "marginLeft": 10
+    }
+});
