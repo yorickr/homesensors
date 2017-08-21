@@ -1,5 +1,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import moment from 'moment';
 
 // util
 import f from '../util/format.js';
@@ -21,21 +22,26 @@ data.get('/light', (req, res) => {
     res.json(f.formatResponse(true, {light: 25.1}));
 });
 
-data.get('/measurement', (req, res) => {
-    const query = 'SELECT * FROM measurements LIMIT 50';
+// get all data types for a sensor
+data.get('/measurement/:sensorId/:fromTime/:toTime', (req, res) => {
+    const {sensorId, fromTime, toTime} = req.params;
+    const startDateTime = moment(fromTime);
+    const endDateTime = moment(toTime);
+    console.log('I received the following objects');
+    const query = db.format('SELECT * FROM measurements WHERE insertTime > ? AND insertTime < ? AND sensor_id = ? ORDER BY insertTime ASC', [startDateTime.format(), endDateTime.format(), sensorId]);
+    console.log(query);
     db.execute(query)
         .then((response) => {
-            res.json(f.formatResponse(true, response.results));
+            const results = response.results.map((row) => {
+                row.insertTime = moment(row.insertTime).local().format(); // correct for UTC that sql returns.
+                return row;
+            });
+            res.json(f.formatResponse(true, results));
         })
         .catch((error) => {
             res.json(f.formatResponse(false));
         });
 });
-
-const supportedData = [
-    'temperature',
-    'light'
-];
 
 data.post('/measurement', (req, res) => {
     const body = req.body || null;
