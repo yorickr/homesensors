@@ -1,15 +1,17 @@
 import React, {Component} from 'react';
 
 import {Route, Redirect} from 'react-router-dom';
+import AppBar from 'material-ui/AppBar';
+
+import './style.css';
 
 import Dashboard from './components/dashboard/';
-import Header from './components/header/';
 
 class App extends Component {
     render() {
         return (
             <div>
-                <Header/>
+                <AppBar title="Hi"/>
                 <Route path="/dashboard" component={Dashboard}/>
                 <Redirect from="/" to="/dashboard" />
             </div>
