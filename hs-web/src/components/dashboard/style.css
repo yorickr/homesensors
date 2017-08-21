@@ -1,3 +1,36 @@
 .dashboard {
-    margin: 3%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-around;
+    margin-top: 20px;
+}
+
+.recharts-wrapper {
+    margin-left: -20px;
+}
+
+.date-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.date-picker-container {
+    display: flex;flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 10px;
+}
+
+.duration-selector {
+    padding: 10px;
+}
+
+.top-buttons-section {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
 }
