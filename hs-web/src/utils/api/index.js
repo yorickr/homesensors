@@ -1,3 +1,5 @@
+import config from '../../config/api.json';
+
 var tkn = null;
 
 const _formHeaders = () => {
@@ -10,10 +12,14 @@ const _formHeaders = () => {
     return headers;
 };
 
+const formBaseUrl = () => {
+    return "" + config.protocol + "://" + config.hostname + ":" + config.port + "/api";
+}
+
 export default {
 
     post (url, body) {
-        return fetch(url, {
+        return fetch(formBaseUrl() + url, {
             method: 'POST',
             headers: _formHeaders(),
             body: JSON.stringify(body)
@@ -27,7 +33,7 @@ export default {
         });
     },
     get (url) {
-        return fetch(url, {
+        return fetch(formBaseUrl() + url, {
             method: 'GET',
             headers: _formHeaders()
         })

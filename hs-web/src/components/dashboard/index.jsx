@@ -3,8 +3,7 @@ import React, {Component} from 'react';
 import RaisedButton from 'material-ui/RaisedButton';
 import DatePicker from 'material-ui/DatePicker';
 import TimePicker from 'material-ui/TimePicker';
-import Popover from 'material-ui/Popover';
-import Menu from 'material-ui/Menu';
+import DropDownMenu from 'material-ui/DropDownMenu';
 import MenuItem from 'material-ui/MenuItem';
 
 import moment from 'moment';
@@ -15,11 +14,39 @@ import Chart from '../chart';
 
 import Api from '../../utils/api';
 
-// const durationSelection  = {
-//     '5 minutes': 5,
-//     'hourly': 60,
-//     'daily': 1440,
-// };
+const durationSelection  = [
+    {
+        text: '5 minutes',
+        value: 5,
+    },
+    {
+        text: 'Hourly',
+        value: 60,
+    },
+    {
+        text: 'Daily',
+        value: 1440,
+    }
+];
+
+const dateSelection = [
+    {
+        text: 'Today',
+        value: 1,
+    },
+    {
+        text: 'Yesterday',
+        value: 2,
+    },
+    {
+        text: 'Last week',
+        value: 3,
+    },
+    {
+        text: 'Last month',
+        value: 4,
+    },
+];
 
 class Dashboard extends Component {
 
@@ -34,21 +61,16 @@ class Dashboard extends Component {
             data: [],
             startDateTime: startDateTime,
             endDateTime: endDateTime,
-            durationSelectorOpen: false,
-            durationButtonLabel: '5 minutes',
 
-            dateButtonLabel: 'Today',
-            dateSelectorOpen: false,
+            durationValue: 5,
+            dateValue: 1,
         };
 
-        localStorage.setItem('username', 'kaas');
+        localStorage.setItem('username', 'yorickr');
 
         this.onButtonClick = this.onButtonClick.bind(this);
-        this.durationSelectorClick = this.durationSelectorClick.bind(this);
-        this.durationSelectorCancel = this.durationSelectorCancel.bind(this);
-        this.dateSelectorClick = this.dateSelectorClick.bind(this);
-        this.dateSelectorCancel = this.dateSelectorCancel.bind(this);
-
+        this.handleChangeDuration = this.handleChangeDuration.bind(this);
+        this.handleChangeDate = this.handleChangeDate.bind(this);
     }
 
     onButtonClick () {
@@ -58,7 +80,7 @@ class Dashboard extends Component {
             alert('Log in before attempting to retrieve data');
             return;
         }
-        Api.post('http://localhost:3030/api/user/login', {username, password})
+        Api.post('/user/login', {username, password})
             .then((response) => {
                 if (response.success) {
                     const {token, userId} = response.data;
@@ -70,30 +92,73 @@ class Dashboard extends Component {
                 }
             })
             .then(() => {
-                return Api.get('http://localhost:3030/api/data/measurement/1/' + this.state.startDateTime.format() + '/' + this.state.endDateTime.format());
+                return Api.get('/data/measurement/1/' + this.state.startDateTime.format() + '/' + this.state.endDateTime.format());
             })
             .then((response) => {
                 // show by hour.
-                const toAdd = 60;
-                var count = 0;
-                const groupedData = [];
-                var totalValue = 0;
-                var timeOfGroupedValue = moment();
-                for (var i = 0; i < response.data.length; i++) {
-                    if (count === 0) {
-                        timeOfGroupedValue = moment(response.data[i].insertTime).startOf('hour');
-                    }
-                    totalValue += response.data[i].value;
-                    if (count === toAdd) {
-                        groupedData.push({temperature: (totalValue / count).toFixed(2), time: timeOfGroupedValue.format('HH')});
-                        count = 0;
-                        totalValue = 0;
-                    } else {
-                        count++;
-                    }
+                // when hourly, toAdd is 60, use startOf('hour')
+                // when every 5 minutes, toAdd is 5, use startOf
+                const toAdd = this.state.durationValue;
+                var startOfString;
+                var formatString;
+                switch (toAdd) {
+                    case 5:
+                        startOfString = 'minute';
+                        formatString = 'HH:mm';
+                        break;
+                    case 60:
+                        startOfString = 'hour';
+                        formatString = 'HH';
+                        break;
+                    case 1440:
+                        startOfString = 'day';
+                        formatString = 'DD';
+                        break;
+                    default:
+                        startOfString = 'hour';
+                        formatString = 'HH';
+                        break;
                 }
-                // we might not always hit 60, so catch the remainder after the for loop.
-                groupedData.push({temperature: (totalValue / count).toFixed(2), time: timeOfGroupedValue.format('HH')});
+
+                var processed = true;
+                var dataGroup = [];
+                const groupedData = [];
+
+                var timeOfGroupedValue; // start time of this group
+                var timePlus; // the start time plus X (so 5 minutes, 1 hour etc)
+                for (var i = 0; i < response.data.length; i++) {
+                    const timeOfMeasurement = moment(response.data[i].insertTime);
+                    if (processed) {
+                        timeOfGroupedValue = moment(timeOfMeasurement);
+                        timePlus = moment(timeOfMeasurement).add(toAdd, 'm').startOf(startOfString);
+                        console.log(timeOfGroupedValue.format());
+                        console.log(timePlus.format());
+                        processed = false;
+                    }
+
+                    if (timeOfMeasurement.isAfter(timePlus)) {
+                        // we have a new measurement starting with timeOfMeasurement
+                        const totalValue = dataGroup.reduce((prev, next) => {
+                            return prev + next;
+                        }, 0);
+                        const avgValue = totalValue / dataGroup.length;
+                        groupedData.push({temperature: avgValue.toFixed(2), time: timeOfGroupedValue.format(formatString)});
+                        dataGroup = [response.data[i].value];
+                        const temp = moment(response.data[i].insertTime);
+                        timeOfGroupedValue = moment(temp);
+                        timePlus = moment(temp).add(toAdd, 'm').startOf('minute');
+                        continue;
+                    }
+                    dataGroup.push(response.data[i].value);
+                }
+                debugger;
+                // catch remainder after loop.
+                const totalValue = dataGroup.reduce((prev, next) => {
+                    return prev + next;
+                }, 0);
+                const avgValue = totalValue / dataGroup.length;
+                groupedData.push({temperature: avgValue.toFixed(2), time: timeOfGroupedValue.format(formatString)});
+                console.log(groupedData);
                 this.setState({data: groupedData});
             })
             .catch((error) => {
@@ -101,80 +166,35 @@ class Dashboard extends Component {
             });
     }
 
-    durationSelectorClick (e) {
-        // This prevents ghost click.
-        e.preventDefault();
-
-        this.setState({
-            durationSelectorOpen: true,
-            anchorEl: e.currentTarget,
-        });
+    handleChangeDuration (event, index, value) {
+        this.setState({durationValue: value});
     }
 
-    durationSelectorCancel() {
-        this.setState({
-            durationSelectorOpen: false,
-        });
+    handleChangeDate (event, index, value) {
+        this.setState({dateValue: value});
     }
-
-    dateSelectorClick (e) {
-        // This prevents ghost click.
-        e.preventDefault();
-
-        this.setState({
-            dateSelectorOpen: true,
-            anchorEl2: e.currentTarget,
-        });
-    }
-
-    dateSelectorCancel() {
-        this.setState({
-            dateSelectorOpen: false,
-        });
-    }
-
 
     render () {
         return (
             <div className="dashboard">
                 <div className="top-buttons-section">
                     <div className="duration-selector">
-                        <RaisedButton
-                            onClick={this.durationSelectorClick}
-                            label={this.state.durationButtonLabel}
-                        />
-                        <Popover
-                            open={this.state.durationSelectorOpen}
-                            anchorEl={this.state.anchorEl}
-                            anchorOrigin={{horizontal: 'left', vertical: 'bottom'}}
-                            targetOrigin={{horizontal: 'left', vertical: 'top'}}
-                            onRequestClose={this.durationSelectorCancel}
-                        >
-                            <Menu>
-                                <MenuItem primaryText="5 minutes" />
-                                <MenuItem primaryText="Hourly" />
-                                <MenuItem primaryText="Daily" />
-                            </Menu>
-                        </Popover>
+                        <DropDownMenu className="dropdown" value={this.state.durationValue} onChange={this.handleChangeDuration} autoWidth={false}>
+                            {durationSelection.map((entry, index) => {
+                                return (
+                                    <MenuItem value={entry.value} primaryText={entry.text} key={index}/>
+                                );
+                            })}
+                        </DropDownMenu>
                     </div>
                     <div className="duration-selector">
-                        <RaisedButton
-                            onClick={this.dateSelectorClick}
-                            label={this.state.dateButtonLabel}
-                        />
-                        <Popover
-                            open={this.state.dateSelectorOpen}
-                            anchorEl={this.state.anchorEl2}
-                            anchorOrigin={{horizontal: 'left', vertical: 'bottom'}}
-                            targetOrigin={{horizontal: 'left', vertical: 'top'}}
-                            onRequestClose={this.dateSelectorCancel}
-                        >
-                            <Menu>
-                                <MenuItem primaryText="5 minutes" />
-                                <MenuItem primaryText="Hourly" />
-                                <MenuItem primaryText="Daily" />
-                            </Menu>
-                        </Popover>
+                        <DropDownMenu className="dropdown" value={this.state.dateValue} onChange={this.handleChangeDate} autoWidth={false}>
+                            {dateSelection.map((entry, index) => {
+                                return (
+                                    <MenuItem value={entry.value} primaryText={entry.text} key={index}/>
+                                );
+                            })}
+                        </DropDownMenu>
                     </div>
                 </div>
                 <Chart data={this.state.data}/>
