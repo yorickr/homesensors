@@ -5,6 +5,8 @@ import DatePicker from 'material-ui/DatePicker';
 import TimePicker from 'material-ui/TimePicker';
 import DropDownMenu from 'material-ui/DropDownMenu';
 import MenuItem from 'material-ui/MenuItem';
+import TextField from 'material-ui/TextField';
+
 
 import moment from 'moment';
 
@@ -72,9 +74,12 @@ class Dashboard extends Component {
 
             durationValue: 5,
             dateValue: 1,
+
+            username: localStorage.getItem('username'),
+            password: localStorage.getItem('password'),
         };
 
-        localStorage.setItem('username', 'yorickr');
+        // localStorage.setItem('username', 'yorickr');
 
         this.onButtonClick = this.onButtonClick.bind(this);
         this.handleChangeDuration = this.handleChangeDuration.bind(this);
@@ -82,6 +87,10 @@ class Dashboard extends Component {
     }
 
     onButtonClick () {
+        if (this.state.username && this.state.password) { // TODO: don't do this in state.
+            localStorage.setItem('username', this.state.username);
+            localStorage.setItem('password', this.state.password);
+        }
         const username = localStorage.getItem('username');
         const password = localStorage.getItem('password');
         if (!username || !password) {
@@ -233,6 +242,17 @@ class Dashboard extends Component {
     render () {
         return (
             <div className="dashboard">
+                <TextField
+                    floatingLabelText="Username"
+                    value={this.state.username}
+                    onChange={(event, value) => this.setState({username: value})}
+                />
+                <TextField
+                    floatingLabelText="Password"
+                    value={this.state.password}
+                    onChange={(event, value) => this.setState({password: value})}
+                    type="password"
+                />
                 <div className="top-buttons-section">
                     <div className="duration-selector">
                         <DropDownMenu className="dropdown" value={this.state.durationValue} onChange={this.handleChangeDuration} autoWidth={false}>
