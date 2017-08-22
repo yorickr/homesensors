@@ -39,12 +39,20 @@ const dateSelection = [
         value: 2,
     },
     {
-        text: 'Last week',
+        text: 'This week',
         value: 3,
     },
     {
-        text: 'Last month',
+        text: 'Last week',
         value: 4,
+    },
+    {
+        text: 'This month',
+        value: 5,
+    },
+    {
+        text: 'Last month',
+        value: 6,
     },
 ];
 
@@ -151,7 +159,6 @@ class Dashboard extends Component {
                     }
                     dataGroup.push(response.data[i].value);
                 }
-                debugger;
                 // catch remainder after loop.
                 const totalValue = dataGroup.reduce((prev, next) => {
                     return prev + next;
@@ -171,6 +178,55 @@ class Dashboard extends Component {
     }
 
     handleChangeDate (event, index, value) {
+        var startDateTime;
+        var endDateTime;
+        switch (value) {
+            case 1: // today
+                startDateTime = moment();
+                startDateTime.startOf('day');
+                endDateTime = moment();
+                endDateTime.endOf('day');
+                this.setState({startDateTime, endDateTime});
+                break;
+            case 2: // yesterday
+                startDateTime = moment().subtract(1, 'day');
+                startDateTime.startOf('day');
+                endDateTime = moment().subtract(1, 'day');
+                endDateTime.endOf('day');
+                this.setState({startDateTime, endDateTime});
+                break;
+            case 3: // this week
+                startDateTime = moment().weekday(0);
+                startDateTime.startOf('day');
+                endDateTime = moment();
+                endDateTime.endOf('day');
+                this.setState({startDateTime, endDateTime});
+                break;
+            case 4: // last week
+                startDateTime = moment().weekday(-7);
+                startDateTime.startOf('day');
+                endDateTime = moment().weekday(0);
+                endDateTime.endOf('day');
+                this.setState({startDateTime, endDateTime});
+                break;
+            case 5: // this month
+                startDateTime = moment().startOf('month');
+                startDateTime.startOf('day');
+                endDateTime = moment().endOf('month');
+                endDateTime.endOf('day');
+                this.setState({startDateTime, endDateTime});
+                break;
+            case 6: // last month
+                startDateTime = moment().subtract(1, 'month').startOf('month');
+                startDateTime.startOf('day');
+                endDateTime = moment().subtract(1, 'month').endOf('month');
+                endDateTime.endOf('day');
+                this.setState({startDateTime, endDateTime});
+                break;
+            default: // default to today
+                throw new Error('This code should not be reached ever');
+
+        }
         this.setState({dateValue: value});
     }
 
