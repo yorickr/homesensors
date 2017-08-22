@@ -1,6 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import cors from 'cors';
+import path from 'path';
 
 // utils
 import f from './util/format.js';
@@ -23,6 +24,8 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
 
 app.use(log);
+
+app.use('/', express.static(path.join(__dirname, '../../hs-web/build/')));
 
 app.get('/api', (req, res) => {
     res.send('Hello World! This api is alive and well!');
