@@ -23,13 +23,20 @@ data.get('/light', (req, res) => {
 });
 
 // get all data types for a sensor
-data.get('/measurement/:sensorId/:fromTime/:toTime', (req, res) => {
-    const {sensorId, fromTime, toTime} = req.params;
+data.get('/measurement/:sensorId/:fromTime/:toTime/:dataType?', (req, res) => {
+    const {sensorId, fromTime, toTime, dataType} = req.params;
     const startDateTime = moment(fromTime);
     const endDateTime = moment(toTime);
     console.log('I received the following objects');
-    const query = db.format('SELECT * FROM measurements WHERE insertTime > ? AND insertTime < ? AND sensor_id = ? ORDER BY insertTime ASC', [startDateTime.format(), endDateTime.format(), sensorId]);
-    console.log(query);
+    var query;
+    if (dataType) {
+        query = db.format('SELECT * FROM measurements WHERE insertTime > ? AND insertTime < ? AND sensor_id = ? AND data_kind = ? ORDER BY insertTime ASC', [startDateTime.format(), endDateTime.format(), sensorId, dataType]);
+        console.log(query);
+    } else {
+        query = db.format('SELECT * FROM measurements WHERE insertTime > ? AND insertTime < ? AND sensor_id = ? ORDER BY insertTime ASC', [startDateTime.format(), endDateTime.format(), sensorId]);
+        console.log(query);
+    }
+
     db.execute(query)
         .then((response) => {
             const results = response.results.map((row) => {
@@ -39,6 +46,23 @@ data.get('/measurement/:sensorId/:fromTime/:toTime', (req, res) => {
             res.json(f.formatResponse(true, results));
         })
         .catch((error) => {
+            res.json(f.formatResponse(false));
+        });
+});
+
+// get the available data types in db, e.g. temperature, light.
+data.get('/types/:sensorId', (req, res) => {
+    const {sensorId} = req.params;
+    const query = db.format('SELECT data_kind FROM measurements WHERE sensor_id = ? GROUP BY data_kind', [sensorId]);
+    db.execute(query)
+        .then((response) => {
+            const results = response.results.reduce((prev, nxt) => {
+                return prev.concat(nxt['data_kind']);
+            }, []);
+            res.json(f.formatResponse(true, results));
+        })
+        .catch((error) => {
+            console.log(error);
             res.json(f.formatResponse(false));
         });
 });

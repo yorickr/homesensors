@@ -10,6 +10,18 @@ const sensor = express.Router();
 
 sensor.use(auth);
 
+sensor.get('/available', (req, res) => {
+    const query = 'SELECT * FROM sensors WHERE active = 1 GROUP BY sensor_id';
+    db.execute(query)
+        .then((response) => {
+            res.json(f.formatResponse(true, response.results));
+        })
+        .catch((error) => {
+            console.log(error);
+            res.json(f.formatResponse(false));
+        });
+});
+
 sensor.post('/unregister', (req, res) => {
     const body = req.body || null;
     if (body) {
