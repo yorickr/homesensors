@@ -1,6 +1,6 @@
 import config from '../../config/api.json';
 
-var tkn = null;
+var tkn = localStorage.getItem('token');
 
 const _formHeaders = () => {
     const headers = {
@@ -45,7 +45,7 @@ export default {
             console.error('Something went wrong while GETing from ' + url);
         });
     },
-    setToken (token) {
-        tkn = token;
+    refreshToken () {
+        tkn = localStorage.getItem('token');
     }
 };

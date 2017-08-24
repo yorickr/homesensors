@@ -74,16 +74,181 @@ class Dashboard extends Component {
 
             durationValue: 5,
             dateValue: 1,
+            sensorValue: 0,
+            sensorSelection: [],
 
             username: localStorage.getItem('username'),
             password: localStorage.getItem('password'),
-        };
 
-        // localStorage.setItem('username', 'yorickr');
+            charts: []
+        };
 
         this.onButtonClick = this.onButtonClick.bind(this);
         this.handleChangeDuration = this.handleChangeDuration.bind(this);
         this.handleChangeDate = this.handleChangeDate.bind(this);
+        this.handlechangeSensor = this.handlechangeSensor.bind(this);
+
+        this.fetchInitialData = this.fetchInitialData.bind(this);
+        this.componentDidMount = this.componentDidMount.bind(this);
+        this.refreshData = this.refreshData.bind(this);
+    }
+
+    componentDidMount () {
+
+        if (!localStorage.getItem('token')) {
+            // no token available, user should login.
+            const username = localStorage.getItem('username');
+            const password = localStorage.getItem('password');
+            if (username && password) {
+                Api.post('/user/login', {username, password})
+                    .then((response) => {
+                        if (response.success) {
+                            const {token, userId} = response.data;
+                            localStorage.setItem('token', token);
+                            Api.refreshToken();
+                            this.setState({userId});
+                            this.fetchInitialData();
+                        } else {
+                            // no token
+                            throw new Error('No token received');
+                        }
+                    })
+                    .catch((error) => {
+                        console.log(error);
+                        throw new Error('Something went wrong logging in');
+                    });
+            } else {
+                // can't get token, make user login.
+            }
+        } else {
+            // we have a token. proceed as usual.
+            Api.refreshToken(); // just in case
+            this.fetchInitialData();
+        }
+    }
+
+    groupDataOfKind (originalData, type) {
+        const toAdd = this.state.durationValue;
+        var startOfString;
+        var formatString;
+        switch (toAdd) {
+            case 5:
+                startOfString = 'minute';
+                formatString = 'HH:mm';
+                break;
+            case 60:
+                startOfString = 'hour';
+                formatString = 'HH';
+                break;
+            case 1440:
+                startOfString = 'day';
+                formatString = 'DD';
+                break;
+            default:
+                startOfString = 'hour';
+                formatString = 'HH';
+                break;
+        }
+
+        var processed = true;
+        var dataGroup = [];
+        const groupedData = [];
+
+        var timeOfGroupedValue; // start time of this group
+        var timePlus; // the start time plus X (so 5 minutes, 1 hour etc)
+        for (var i = 0; i < originalData.data.length; i++) {
+            const timeOfMeasurement = moment(originalData.data[i].insertTime);
+            if (processed) {
+                timeOfGroupedValue = moment(timeOfMeasurement);
+                timePlus = moment(timeOfMeasurement).add(toAdd, 'm').startOf(startOfString);
+                processed = false;
+            }
+
+            if (timeOfMeasurement.isAfter(timePlus)) {
+                // we have a new measurement starting with timeOfMeasurement
+                const totalValue = dataGroup.reduce((prev, next) => {
+                    return prev + next;
+                }, 0);
+                const avgValue = totalValue / dataGroup.length;
+                const objToPush = {time: timeOfGroupedValue.format(formatString)};
+                objToPush[type] = avgValue.toFixed(2);
+                groupedData.push(objToPush);
+                dataGroup = [originalData.data[i].value];
+                const temp = moment(originalData.data[i].insertTime);
+                timeOfGroupedValue = moment(temp);
+                timePlus = moment(temp).add(toAdd, 'm').startOf('minute');
+                continue;
+            }
+            dataGroup.push(originalData.data[i].value);
+        }
+        // catch remainder after loop.
+        const totalValue = dataGroup.reduce((prev, next) => {
+            return prev + next;
+        }, 0);
+        const avgValue = totalValue / dataGroup.length;
+        const objToPush = {time: timeOfGroupedValue.format(formatString)};
+        objToPush[type] = avgValue.toFixed(2);
+        groupedData.push(objToPush);
+        return groupedData;
+    }
+
+    fetchInitialData () {
+        Api.get('/sensor/available')
+            .then((response) => {
+                if (response.data.length > 0) {
+                    const selectedSensor = response.data[0].sensor_id;
+                    const sensors = response.data.map((sensor) => {
+                        return {
+                            text: sensor['name'],
+                            value: sensor['sensor_id']
+                        };
+                    });
+
+                    this.setState({sensorValue: selectedSensor, sensorSelection: sensors});
+                    this.refreshData();
+                    return;
+                } else {
+                    return Promise.reject();
+                }
+            })
+            .catch((error) => {
+                console.log(error);
+                alert('Something went wrong fetching initial Data');
+            });
+    }
+
+    refreshData () {
+        // fetch available data from remote for sensor
+        // fetch available remote sensors
+        Api.get('/data/types/' + this.state.sensorValue)
+            .then((response) => {
+                const types = response;
+                if (types.success) {
+                    const promises = types.data.map((type) => {
+                        return Api.get('/data/measurement/' + this.state.sensorValue + '/' + this.state.startDateTime.format() + '/' + this.state.endDateTime.format() + '/' + type);
+                    });
+                    promises.push(Promise.resolve(types));
+                    return Promise.all(promises);
+                } else {
+                    Promise.reject();
+                }
+            })
+            .then((response) => {
+                const types = response[response.length - 1];
+                // format charts according to response.data
+                const charts = types.data.map((type, index) => {
+                    return {
+                        dataKeyX: "time",
+                        dataKeyY: type,
+                        data: this.groupDataOfKind(response[index], type)
+                    };
+                });
+                this.setState({charts});
+            })
+            .catch((error) => {
+                console.log(error);
+                alert('Something went wrong fetching data on mount');
+            });
     }
 
     onButtonClick () {
@@ -97,89 +262,7 @@ class Dashboard extends Component {
             alert('Log in before attempting to retrieve data');
             return;
         }
-        Api.post('/user/login', {username, password})
-            .then((response) => {
-                if (response.success) {
-                    const {token, userId} = response.data;
-                    Api.setToken(token);
-                    this.setState({userId});
-                } else {
-                    // no token
-                    throw new Error('No token received');
-                }
-            })
-            .then(() => {
-                return Api.get('/data/measurement/1/' + this.state.startDateTime.format() + '/' + this.state.endDateTime.format());
-            })
-            .then((response) => {
-                // show by hour.
-                // when hourly, toAdd is 60, use startOf('hour')
-                // when every 5 minutes, toAdd is 5, use startOf
-                const toAdd = this.state.durationValue;
-                var startOfString;
-                var formatString;
-                switch (toAdd) {
-                    case 5:
-                        startOfString = 'minute';
-                        formatString = 'HH:mm';
-                        break;
-                    case 60:
-                        startOfString = 'hour';
-                        formatString = 'HH';
-                        break;
-                    case 1440:
-                        startOfString = 'day';
-                        formatString = 'DD';
-                        break;
-                    default:
-                        startOfString = 'hour';
-                        formatString = 'HH';
-                        break;
-                }
-
-                var processed = true;
-                var dataGroup = [];
-                const groupedData = [];
-
-                var timeOfGroupedValue; // start time of this group
-                var timePlus; // the start time plus X (so 5 minutes, 1 hour etc)
-                for (var i = 0; i < response.data.length; i++) {
-                    const timeOfMeasurement = moment(response.data[i].insertTime);
-                    if (processed) {
-                        timeOfGroupedValue = moment(timeOfMeasurement);
-                        timePlus = moment(timeOfMeasurement).add(toAdd, 'm').startOf(startOfString);
-                        console.log(timeOfGroupedValue.format());
-                        console.log(timePlus.format());
-                        processed = false;
-                    }
-
-                    if (timeOfMeasurement.isAfter(timePlus)) {
-                        // we have a new measurement starting with timeOfMeasurement
-                        const totalValue = dataGroup.reduce((prev, next) => {
-                            return prev + next;
-                        }, 0);
-                        const avgValue = totalValue / dataGroup.length;
-                        groupedData.push({temperature: avgValue.toFixed(2), time: timeOfGroupedValue.format(formatString)});
-                        dataGroup = [response.data[i].value];
-                        const temp = moment(response.data[i].insertTime);
-                        timeOfGroupedValue = moment(temp);
-                        timePlus = moment(temp).add(toAdd, 'm').startOf('minute');
-                        continue;
-                    }
-                    dataGroup.push(response.data[i].value);
-                }
-                // catch remainder after loop.
-                const totalValue = dataGroup.reduce((prev, next) => {
-                    return prev + next;
-                }, 0);
-                const avgValue = totalValue / dataGroup.length;
-                groupedData.push({temperature: avgValue.toFixed(2), time: timeOfGroupedValue.format(formatString)});
-                console.log(groupedData);
-                this.setState({data: groupedData});
-            })
-            .catch((error) => {
-                console.log(error);
-            });
+        this.refreshData();
     }
 
     handleChangeDuration (event, index, value) {
@@ -239,6 +322,10 @@ class Dashboard extends Component {
         this.setState({dateValue: value});
     }
 
+    handlechangeSensor (event, index, value) {
+        this.setState({sensorValue: value});
+    }
+
     render () {
         return (
             <div className="dashboard">
@@ -272,8 +359,21 @@ class Dashboard extends Component {
                             })}
                         </DropDownMenu>
                     </div>
+                    <div className="duration-selector">
+                        <DropDownMenu className="dropdown" value={this.state.sensorValue} onChange={this.handlechangeSensor} autoWidth={false}>
+                            {this.state.sensorSelection.map((entry, index) => {
+                                return (
+                                    <MenuItem value={entry.value} primaryText={entry.text} key={index}/>
+                                );
+                            })}
+                        </DropDownMenu>
+                    </div>
                 </div>
-                <Chart data={this.state.data}/>
+                <div className="chart-container">
+                    {this.state.charts.map((chart, index) => {
+                        return <Chart key={index} data={chart.data} dataKeyX={chart.dataKeyX} dataKeyY={chart.dataKeyY} />;
+                    })}
+                </div>
                 <div className="date-container">
                     <div className="date-picker-container">
                         <div>

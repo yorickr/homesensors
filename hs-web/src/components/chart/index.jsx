@@ -15,26 +15,35 @@ import './style.css';
 // ];
 
 const arrayMin = (arr) => {
-    return arr.reduce(function (p, v) {
-        return ( p < v ? p : v );
-    }, Number.MAX_SAFE_INTEGER);
+    var min = Number.MAX_SAFE_INTEGER;
+    for (var i = 0; i < arr.length; i++) {
+        const value = parseFloat(arr[i], 10);
+        if (value < min) {
+            min = value;
+        }
+    }
+    return min;
 };
 
 const arrayMax = (arr) => {
-    return arr.reduce(function (p, v) {
-        return ( p > v ? p : v );
-    }, Number.MIN_SAFE_INTEGER);
+    var max = Number.MIN_SAFE_INTEGER;
+    for (var i = 0; i < arr.length; i++) {
+        const value = parseFloat(arr[i], 10);
+        if (value > max) {
+            max = value;
+        }
+    }
+    return max;
 };
 
 class Chart extends Component {
     render() {
         var domain;
         if (this.props.data.length > 0) {
-            const dataMin = arrayMin(this.props.data.map((entry) => entry.temperature));
-            const dataMax = arrayMax(this.props.data.map((entry) => entry.temperature));
-            console.log({dataMin, dataMax});
+            const array = this.props.data.map((entry) => entry[this.props.dataKeyY]);
+            const dataMin = arrayMin(array);
+            const dataMax = arrayMax(array);
             domain = [(parseInt(dataMin, 10) - 10), (parseInt(dataMax, 10) + 10)];
-            console.log(domain);
         } else {
             domain = ['auto', 'auto'];
         }
@@ -42,12 +51,12 @@ class Chart extends Component {
         return (
             <LineChart width={600} height={400} data={this.props.data}
                     margin={{top: 5, right: 30, left: 20, bottom: 5}}>
-               <XAxis dataKey="time"/>
-               <YAxis dataKey="temperature" type="number" domain={domain}/>
+               <XAxis dataKey={this.props.dataKeyX}/>
+               <YAxis dataKey={this.props.dataKeyY} type="number" domain={domain}/>
                <CartesianGrid strokeDasharray="3 3"/>
                <Tooltip/>
                <Legend />
-               <Line type="monotone" dataKey="temperature" stroke="#8884d8" activeDot={{r: 8}}/>
+               <Line type="monotone" dataKey={this.props.dataKeyY} stroke="#8884d8" activeDot={{r: 8}}/>
           </LineChart>
         )
     }
