@@ -31,7 +31,7 @@ user.post('/login', (req, res) => {
                                         token
                                     }));
                                 } else {
-                                    res.json(f.formatResponse(false, 'Wrong password.'));
+                                    res.status(401).json(f.formatResponse(false, 401, 'Wrong password.'));
                                 }
                             })
                             .catch((error) => {
@@ -40,7 +40,7 @@ user.post('/login', (req, res) => {
                             });
                     } else {
                         // user doesn't exist.
-                        res.json(f.formatResponse(false, 'User does not exist, please register first.'));
+                        res.json(f.formatResponse(false, 401, 'User does not exist, please register first.'));
                     }
                 })
                 .catch((error) => {

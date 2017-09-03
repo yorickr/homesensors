@@ -11,7 +11,7 @@ const authenticate = (req, res, next) => {
         jwt.verify(token, cfg.secret, (error, decoded) => {
             if (error) {
                 console.log('This is invalid tho');
-                res.json(f.formatResponse(false, 'Invalid token'));
+                res.status(403).json(f.formatResponse(false, 403, 'Invalid token'));
                 return;
             }
             req.authenticated = true;
@@ -19,7 +19,7 @@ const authenticate = (req, res, next) => {
             next();
         });
     } else {
-        return res.status(403).json(f.formatResponse(false, 'Missing token.'));
+        return res.status(403).json(f.formatResponse(false, 403, 'Missing token.'));
     }
 };
 
