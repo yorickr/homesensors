@@ -49,7 +49,7 @@ class Chart extends Component {
         }
 
         return (
-            <LineChart width={600} height={400} data={this.props.data}
+            <LineChart width={600} height={400} data={this.props.data} className="chart"
                     margin={{top: 5, right: 30, left: 20, bottom: 5}}>
                <XAxis dataKey={this.props.dataKeyX}/>
                <YAxis dataKey={this.props.dataKeyY} type="number" domain={domain}/>

@@ -4,6 +4,9 @@
     align-items: center;
     justify-content: space-around;
     margin-top: 20px;
+    padding-bottom: 20px;
+    min-width: 300px;
+    max-width: 1024px;
 }
 
 .recharts-wrapper {
@@ -25,8 +28,14 @@
     justify-content: center;
 }
 
+.credentials-container {
+    display: flex;
+    flex-direction: row;
+}
+
 .date-picker-container {
-    display: flex;flex-direction: column;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     margin: 10px;

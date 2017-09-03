@@ -16,6 +16,17 @@ const formBaseUrl = () => {
     return "" + config.protocol + "://" + config.hostname + ":" + config.port + "/api";
 }
 
+const checkRequest = (responseJson) => {
+    if (responseJson.success === true) {
+        // we did it! return.
+        return responseJson;
+    } else {
+        // fail using Promise.reject() with the reason provided in responseJson
+        const {data, code} = responseJson;
+        return Promise.reject({data, code});
+    }
+};
+
 export default {
 
     post (url, body) {
@@ -26,10 +37,11 @@ export default {
         })
         .then((response) => response.json())
         .then((responseJson) => {
-            return responseJson;
+            return checkRequest(responseJson);
         })
         .catch((error) => {
             console.error('Something went wrong while POSTing to ' + url);
+            throw error;
         });
     },
     get (url) {
@@ -39,10 +51,11 @@ export default {
         })
         .then((response) => response.json())
         .then((responseJson) => {
-            return responseJson;
+            return checkRequest(responseJson);
         })
         .catch((error) => {
             console.error('Something went wrong while GETing from ' + url);
+            throw error;
         });
     },
     refreshToken () {
