@@ -254,6 +254,14 @@ class Dashboard extends Component {
             })
             .then((response) => {
                 const types = response[response.length - 1];
+                for (var data of response) {
+                    // console.log(data);
+                    if (data.data.length === 0) {
+                        // error, data is 0
+                        alert('No data available for this sensor');
+                        return;
+                    }
+                }
                 // format charts according to response.data
                 const charts = types.data.map((type, index) => {
                     return {
